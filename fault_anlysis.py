@@ -168,7 +168,7 @@ st.markdown("<h1>⚡ MICROGRID FAULT AI <span style='font-size: 0.5em; color: #F
 st.markdown("""
 <p style="color: #888888; font-size: 1.1rem; border-left: 2px solid #FF5000; padding-left: 10px; display: flex; align-items: center;">
 <span class="live-dot"></span> SYSTEM DIAGNOSTICS // <b>ACTIVE</b> 
-AI-DRIVEN FAULT CLASSIFICATION: NORMAL, LG, LL, LLG, <b>LLLG</b>.
+ AI-DRIVEN FAULT CLASSIFICATION: NORMAL, LG, LL, LLG, <b>LLLG</b>.
 </p>
 """, unsafe_allow_html=True)
 
