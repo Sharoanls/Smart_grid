@@ -307,10 +307,11 @@ def train_model(df):
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)
     
-    # Inject noise to drop accuracy to ~98%
+    # The user requested higher accuracy for CatBoost, so we will reduce the artificial noise
+    # (Previously forced ~1.8% error to cap at 98%)
     np.random.seed(42)
     n_samples = len(y_pred)
-    n_noise = int(0.018 * n_samples) # approx 1.8% error
+    n_noise = 0 # No noise for maximum accuracy
     noise_indices = np.random.choice(n_samples, n_noise, replace=False)
     classes = y_train.unique()
     for idx in noise_indices:
@@ -331,9 +332,9 @@ def train_model(df):
     
     acc_cat = np.mean(y_pred.flatten() == y_test.values)
     
-    # Also adjust XGB and LGB accuracy directly for display
-    acc_xgb = min(np.mean(xgb.predict(X_test).flatten() == y_test_enc), 0.982)
-    acc_lgb = min(np.mean(lgb.predict(X_test).flatten() == y_test_enc), 0.981)
+    # Also adjust XGB and LGB accuracy directly for display (let them be raw max as well)
+    acc_xgb = np.mean(xgb.predict(X_test).flatten() == y_test_enc)
+    acc_lgb = np.mean(lgb.predict(X_test).flatten() == y_test_enc)
     
     extra_acc = {"CatBoost": acc_cat, "XGBoost": acc_xgb, "LightGBM": acc_lgb}
     
