@@ -34,8 +34,8 @@ def symmetrical_components(x_abc):
     x012 = A_mat @ x_abc
     return x012[0], x012[1], x012[2]
 
-def get_phasors(mag_a, mag_b, mag_c):
-    return [phasor(mag_a, 0), phasor(mag_b, -120), phasor(mag_c, 120)]
+def get_phasors(mag_a, mag_b, mag_c, ang_a, ang_b, ang_c):
+    return [phasor(mag_a, ang_a), phasor(mag_b, ang_b), phasor(mag_c, ang_c)]
 
 # ==========================================
 # 1. Dashboard Configuration
@@ -167,8 +167,8 @@ st.markdown("""
 st.markdown("<h1>⚡ MICROGRID FAULT AI <span style='font-size: 0.5em; color: #FF5000;'>// V2.0</span></h1>", unsafe_allow_html=True)
 st.markdown("""
 <p style="color: #888888; font-size: 1.1rem; border-left: 2px solid #FF5000; padding-left: 10px; display: flex; align-items: center;">
-<span class="live-dot"></span> SYSTEM DIAGNOSTICS // <b>ACTIVE</b> 
- AI-DRIVEN FAULT CLASSIFICATION: NORMAL, LG, LL, LLG, <b>LLLG</b>.
+<span class="live-dot"></span> SYSTEM DIAGNOSTICS // <b>ACTIVE</b> <br>
+AI-DRIVEN FAULT CLASSIFICATION: NORMAL, LG, LL, LLG, <b>LLLG</b>.
 </p>
 """, unsafe_allow_html=True)
 
@@ -226,8 +226,14 @@ pf = live_data.get('I_A', 0.5) / S_mva if S_mva > 0 else 0
 pf = min(abs(pf), 1.0) # Cap at 1.0
 
 # Calculate Symmetrical Components
-V_phasors = get_phasors(live_data.get('V_A', 1.0), live_data.get('V_B', 1.0), live_data.get('V_C', 1.0))
-I_phasors = get_phasors(live_data.get('I_A', 0.0), live_data.get('I_B', 0.0), live_data.get('I_C', 0.0))
+V_phasors = get_phasors(
+    live_data.get('V_A', 1.0), live_data.get('V_B', 1.0), live_data.get('V_C', 1.0),
+    live_data.get('V_A_angle', 0), live_data.get('V_B_angle', -120), live_data.get('V_C_angle', 120)
+)
+I_phasors = get_phasors(
+    live_data.get('I_A', 0.0), live_data.get('I_B', 0.0), live_data.get('I_C', 0.0),
+    live_data.get('I_A_angle', 0), live_data.get('I_B_angle', -120), live_data.get('I_C_angle', 120)
+)
 
 V0, V1, V2 = symmetrical_components(V_phasors)
 I0, I1, I2 = symmetrical_components(I_phasors)
@@ -244,15 +250,15 @@ st.sidebar.markdown(f"""
 <div style="display: flex; justify-content: space-between;">
 <div>
 <p style="margin:0; color:#888; font-size:0.7rem;">VOLTAGE (p.u.)</p>
-<p style="margin:0; font-size:1rem; color:#FF5000;">A: {live_data.get("V_A", 0):.3f}</p>
-<p style="margin:0; font-size:1rem;">B: {live_data.get("V_B", 0):.3f}</p>
-<p style="margin:0; font-size:1rem; color:#888;">C: {live_data.get("V_C", 0):.3f}</p>
+<p style="margin:0; font-size:1rem; color:#FF5000;">A: {live_data.get("V_A", 0):.3f} ∠ {live_data.get("V_A_angle", 0):.1f}°</p>
+<p style="margin:0; font-size:1rem;">B: {live_data.get("V_B", 0):.3f} ∠ {live_data.get("V_B_angle", -120):.1f}°</p>
+<p style="margin:0; font-size:1rem; color:#888;">C: {live_data.get("V_C", 0):.3f} ∠ {live_data.get("V_C_angle", 120):.1f}°</p>
 </div>
 <div>
 <p style="margin:0; color:#888; font-size:0.7rem;">CURRENT (p.u.)</p>
-<p style="margin:0; font-size:1rem; color:#FF5000;">A: {live_data.get("I_A", 0):.3f}</p>
-<p style="margin:0; font-size:1rem;">B: {live_data.get("I_B", 0):.3f}</p>
-<p style="margin:0; font-size:1rem; color:#888;">C: {live_data.get("I_C", 0):.3f}</p>
+<p style="margin:0; font-size:1rem; color:#FF5000;">A: {live_data.get("I_A", 0):.3f} ∠ {live_data.get("I_A_angle", 0):.1f}°</p>
+<p style="margin:0; font-size:1rem;">B: {live_data.get("I_B", 0):.3f} ∠ {live_data.get("I_B_angle", -120):.1f}°</p>
+<p style="margin:0; font-size:1rem; color:#888;">C: {live_data.get("I_C", 0):.3f} ∠ {live_data.get("I_C_angle", 120):.1f}°</p>
 </div>
 </div>
 
@@ -284,7 +290,7 @@ st.sidebar.markdown(f"""
 # ==========================================
 @st.cache_resource
 def train_model(df):
-    feature_cols = ["V_A", "V_B", "V_C", "I_A", "I_B", "I_C"]
+    feature_cols = ["V_A", "V_B", "V_C", "V_A_angle", "V_B_angle", "V_C_angle", "I_A", "I_B", "I_C", "I_A_angle", "I_B_angle", "I_C_angle"]
     X = df[feature_cols] if all(c in df.columns for c in feature_cols) else df.drop(["Target", "Sample_ID", "Windmill", "Bus_Type", "Split", "Resistance"], axis=1, errors="ignore")
     y = df["Target"]
     
@@ -635,7 +641,7 @@ elif st.session_state.view == "AI_COMPARE":
     </div>
     """, unsafe_allow_html=True)
     
-    feature_cols = ["V_A", "V_B", "V_C", "I_A", "I_B", "I_C"]
+    feature_cols = ["V_A", "V_B", "V_C", "V_A_angle", "V_B_angle", "V_C_angle", "I_A", "I_B", "I_C", "I_A_angle", "I_B_angle", "I_C_angle"]
     X = df[feature_cols] if all(c in df.columns for c in feature_cols) else df.drop(["Target", "Sample_ID", "Windmill", "Bus_Type", "Split", "Resistance"], axis=1, errors="ignore")
     y = df["Target"]
     
